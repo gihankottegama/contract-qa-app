@@ -1,20 +1,33 @@
 import os
+import json
+import streamlit as st
 from dotenv import load_dotenv
-from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import OpenAIEmbeddings
+from langchain_community.vectorstores import FAISS
 from langchain_community.chat_models import ChatOpenAI
 from langchain.chains import RetrievalQA
+from langchain_core.documents import Document
 
-# 🔐 Load API key
+# Load API Key
 load_dotenv()
 openai_key = os.getenv("OPENAI_API_KEY")
 
-# 📚 Load ChromaDB vector store
-CHROMA_DIR = "C:/Users/gihan/OneDrive/data/vector_store/chroma"
+# Load embedding model
 embedding = OpenAIEmbeddings(openai_api_key=openai_key)
-vectorstore = Chroma(persist_directory=CHROMA_DIR, embedding_function=embedding)
 
-# 🤖 Set up GPT-powered Q&A chain
+# Load your document chunks
+with open("chunked_documents_cleaned.json", "r", encoding="utf-8") as f:
+    data = json.load(f)
+
+documents = [
+    Document(page_content=item["content"], metadata=item["metadata"])
+    for item in data
+]
+
+# Build FAISS vector store in memory
+vectorstore = FAISS.from_documents(documents, embedding)
+
+# Create GPT-powered Q&A chain
 llm = ChatOpenAI(openai_api_key=openai_key, temperature=0.2, model="gpt-3.5-turbo")
 qa_chain = RetrievalQA.from_chain_type(
     llm=llm,
@@ -22,16 +35,18 @@ qa_chain = RetrievalQA.from_chain_type(
     return_source_documents=True
 )
 
-# 💬 Ask questions interactively
-while True:
-    query = input("\n💬 Ask your contract question (or type 'exit'): ").strip()
-    if query.lower() in ("exit", "quit"):
-        print("👋 Goodbye!")
-        break
+# --- Streamlit UI ---
+st.set_page_config(page_title="Ask Your Docs", layout="centered")
+st.title("📄 Contract Q&A Assistant")
 
-    result = qa_chain(query)
-    print("\n🧠 GPT Answer:\n", result["result"])
+query = st.text_input("Ask a contract-related question:")
+if query:
+    with st.spinner("Thinking..."):
+        result = qa_chain(query)
+        st.markdown("### 🧠 Answer")
+        st.write(result["result"])
 
-    print("\n📎 Sources:")
-    for i, doc in enumerate(result["source_documents"], 1):
-        print(f"{i}. {doc.metadata.get('filename')} — {doc.metadata.get('chunk_id')}")
+        st.markdown("### 📎 Sources")
+        for i, doc in enumerate(result["source_documents"], 1):
+            meta = doc.metadata
+            st.write(f"**{i}.** {meta.get('filename', 'Unknown')} — `{meta.get('chunk_id')}`")
