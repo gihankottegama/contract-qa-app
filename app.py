@@ -8,26 +8,24 @@ from langchain_community.chat_models import ChatOpenAI
 from langchain.chains import RetrievalQA
 from langchain_core.documents import Document
 
-# Load API Key
+# Load API key
 load_dotenv()
 openai_key = os.getenv("OPENAI_API_KEY")
 
-# Load embedding model
+# Initialize embedding model
 embedding = OpenAIEmbeddings(openai_api_key=openai_key)
 
-# Load your document chunks
-with open("chunked_documents_cleaned.json", "r", encoding="utf-8") as f:
-    data = json.load(f)
-
-documents = [
-    Document(page_content=item["content"], metadata=item["metadata"])
-    for item in data
-]
+# Load documents from JSONL
+documents = []
+with open("chunked_documents_min.jsonl", "r", encoding="utf-8") as f:
+    for line in f:
+        item = json.loads(line)
+        documents.append(Document(page_content=item["content"], metadata=item["metadata"]))
 
 # Build FAISS vector store in memory
 vectorstore = FAISS.from_documents(documents, embedding)
 
-# Create GPT-powered Q&A chain
+# Setup LLM and RetrievalQA chain
 llm = ChatOpenAI(openai_api_key=openai_key, temperature=0.2, model="gpt-3.5-turbo")
 qa_chain = RetrievalQA.from_chain_type(
     llm=llm,
