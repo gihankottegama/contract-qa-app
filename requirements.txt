@@ -1,0 +1,15 @@
+langchain
+langchain-community
+openai
+chromadb
+faiss-cpu         # comment this out if you’re using ChromaDB only
+unstructured
+PyMuPDF
+python-docx
+pdfplumber
+tiktoken
+pydantic>=1.10
+typing-extensions
+azure-search-documents
+msal
+Office365-REST-Python-Client
