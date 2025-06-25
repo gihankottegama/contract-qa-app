@@ -17,7 +17,7 @@ embedding = OpenAIEmbeddings(openai_api_key=openai_key)
 
 # Load documents from JSONL
 documents = []
-with open(r"C:\Users\gihan\OneDrive\data\processedchunked_documents_min.jsonl", "r", encoding="utf-8") as f:
+with open("processed/chunked_documents_min.jsonl", "r", encoding="utf-8") as f:
     for line in f:
         item = json.loads(line)
         documents.append(Document(page_content=item["content"], metadata=item["metadata"]))
